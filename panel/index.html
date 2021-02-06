@@ -6,11 +6,15 @@
             <option v-for="item in types" value="{{item.id}}">{{item.name}}</option>
         </ui-select>
     </ui-section>
-    <div>
-        <ui-button class="green" @click="build" id="buildhtml">构建</ui-button>
-    </div>
+    <!-- <div> -->
     <hr />
-        <ui-button id="_openhtml" @click="openhtml">打开</ui-button>
-        <div><span id="label"></span></div>
+        <ui-input id="filename" placeholder="index+date"></ui-input>
+        <ui-input id="title" placeholder="项目名字"></ui-input>
+        <ui-button class="green" @click="build" id="buildhtml">构建</ui-button>
+        <div><span id="buildlabel"></span></div>
+    <!-- </div> -->
+    <hr />
+        <ui-button id="openhtml" @click="openhtml">打开</ui-button>
+        <div><span id="openlabel"></span></div>
     <hr />
 </div>

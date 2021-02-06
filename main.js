@@ -18,7 +18,7 @@ module.exports = {
     },
     'build' (event,params) {
       Editor.log('构建开始!'+ JSON.stringify(params));
-      main(params.type);
+      main(params);
     },
     'open-html'(){
         if(!ouputhtml){
@@ -36,21 +36,30 @@ module.exports = {
 };
 
 
-const OPTION_PLATFORM = {
+const platform_type = {
+    /** 谷歌 */
     google: 0,
+    /** facebook */
     facebook: 1,
+    /** appLovin */
     appLovin: 2,
+    /** unity */
     unity: 3,
+    /** vungle */
     vungle: 4,
+    /** 穿山甲 */
     csj: 5,
-    txgdt: 6,
+    /** ironSource */
+    ironSource: 6,
+    /** 腾讯广点通 */
+    txgdt: 7,
 }
 const path = require("path");
 const fs = require('fs');
 const CleanCSS = require("clean-css");
 const toolRoot = path.join(Editor.Project.path, 'packages', "htmltool");
 let ouputhtml = "";
-let workdir = path.join(Editor.Project.path, "build","web-mobile");
+const workdir = path.join(Editor.Project.path, "build","web-mobile");
 Editor.log(workdir);
 // 以下格式转成base64
 const base64FileFormat = new Set(['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp', '.mp3', '.wav', '.ogg', '.w4a', 'binary', ".bin", ".dbbin", ".skel"]);
@@ -61,22 +70,23 @@ const timePromise = function (duration) {
         setTimeout(resolve, duration);
     })
 }
-let main = async (type) => {
+let main = async (params) => {
+    let type = params.type;
+    let filename = params.filename;
     Editor.log(`打包类别: ${type}`);
     let newloaderJS = '';
     let resdir = '';
     let needDeletefiles = [];
     let packRoot = ".";
     Editor.log(`workdir: ${workdir}`);
-    Editor.log("packRoot = ", packRoot)
     if (fs.existsSync(path.join(workdir, "assets"))) {
         resdir = path.join(workdir, "assets");
         Editor.log("newloader2.4.x.j");
-        newloaderJS = path.join(packRoot, "newloader2.4.x.js");
+        newloaderJS = path.join(toolRoot,"newloader2.4.x.js");
     } else {
         resdir = path.join(workdir, "res");
         Editor.log("newloader2.3.x.j");
-        newloaderJS = path.join(packRoot, "newloader2.3.x.js");
+        newloaderJS = path.join(toolRoot,"newloader2.3.x.js");
     }
     if (!fs.existsSync(resdir)) {
         Editor.error(resdir + "不存在！");
@@ -195,35 +205,36 @@ let main = async (type) => {
     Editor.log("jsfilesQueue ", jsfilesQueue);
 
     // 清理html
-    Editor.log("处理html")
+    addTip("处理 html");
     let html = fs.readFileSync(path.join(workdir, "index.html"), 'utf-8');
     html = html.replace(/<link rel="stylesheet".*\/>/gs, "")
     html = html.replace(/<script.*<\/script>/gs, "")
-    html = html.replace("</head>", `${addSdk()}\n</head>`)
-    Editor.log("处理 css ")
+    html = html.replace(/<title.*<\/title>/gs, "")
+    let title = `<title>${params.title ? params.title:Editor.Project.name}</title>`
+    html = html.replace("<head>", `<head>\n${title}`);
+    addTip("处理 css");
     let csscode = fs.readFileSync(path.join(toolRoot, "style-mobile.css"), 'utf-8');
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
-    html = html.replace("</head>", `${csscode}</head>`);
-    Editor.log("css 写入完成")
+    html = html.replace("</head>", `${csscode}\n</head>`);
+    addTip("css 写入完成")
+    Number(type) == platform_type.csj && addConfig();
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
             continue;
         }
-        Editor.log("处理", jsfile)
+        addTip(`处理 ${jsfile}`)
         await timePromise(300);
-        if(jsfile.indexOf("newloader")!=-1){
-            let newloader = path.join(toolRoot,jsfile);
-            jscodecontent = jscodecontent + fs.readFileSync(newloader, 'utf-8') + "\n";
-        }else{
-            jscodecontent = jscodecontent + fs.readFileSync(jsfile, 'utf-8') + "\n";
-        }
+        jscodecontent = jscodecontent + fs.readFileSync(jsfile, 'utf-8') + "\n";
     }
     let jscodeTAG = `<script type="text/javascript">\n${jscodecontent}window.boot();</script>`
     html = html.replace("</body>", `${jscodeTAG}\n</body>`)
-    ouputhtml = path.join(path.dirname(workdir), "index." + Math.floor(Date.now() / 1000) + ".html");
+    let suf = filename ? filename + ".html" : "index." + Math.floor(Date.now() / 1000) + ".html";
+    suf = Number(type) == platform_type.vungle ? "ad.html":suf;
+    ouputhtml = path.join(path.dirname(workdir), suf);
+    html = addSdk(type,html);
     fs.writeFileSync(ouputhtml, html, 'utf-8')
-    Editor.log("html写入完成");
+    addTip("html写入完成");
     for (let fff of needDeletefiles) {
         fs.unlink(fff, (err) => {
             err && Editor.log(err)
@@ -232,9 +243,127 @@ let main = async (type) => {
     Editor.log(ouputhtml)
 }
 
-let googleSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
-let addSdk = function(type){
-    Editor.log("处理 sdk引入 ")
-    let jscodeTAG = googleSDKStr;
-    return jscodeTAG;
+let addTip = function(tip){
+    Editor.Ipc.sendToPanel('htmltool', 'htmltool:build-tip',{tip:tip});
+}
+
+const googleSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
+const unityAppLovinSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
+const csjSDKStr = '<script type="text/javascript" src="https://sf3-ttcdn-tos.pstatp.com/obj/union-fe-nc/playable/sdk/playable-sdk.js"> </script>';
+const ironSourceFrontSdkStr = `<script>
+function getScript(e, i) {
+    var n = document.createElement("script");
+    n.type = "text/javascript", n.async = !0, i && (n.onload = i), n.src = e, document.head.appendChild(n)
+}
+function parseMessage(e) {
+    var i = e.data,
+        n = i.indexOf(DOLLAR_PREFIX + RECEIVE_MSG_PREFIX);
+    if (-1 !== n) {
+        var t = i.slice(n + 2);
+        return getMessageParams(t)
+    }
+    return {}
+}
+function getMessageParams(e) {
+    var i, n = [],
+        t = e.split("/"),
+        a = t.length;
+    if (-1 === e.indexOf(RECEIVE_MSG_PREFIX)) {
+        if (a >= 2 && a % 2 === 0)
+            for (i = 0; a > i; i += 2) n[t[i]] = t.length < i + 1 ? null : decodeURIComponent(t[i + 1])
+    } else {
+        var o = e.split(RECEIVE_MSG_PREFIX);
+        void 0 !== o[1] && (n = JSON && JSON.parse(o[1]))
+    }
+    return n
+}
+function getDapi(e) {
+    var i = parseMessage(e);
+    if (!i || i.name === GET_DAPI_URL_MSG_NAME) {
+        var n = i.data;
+        getScript(n, onDapiReceived)
+    }
+}
+function invokeDapiListeners() {
+    for (var e in dapiEventsPool) dapiEventsPool.hasOwnProperty(e) && dapi.addEventListener(e, dapiEventsPool[
+        e])
+}
+function onDapiReceived() {
+    dapi = window.dapi, window.removeEventListener("message", getDapi), invokeDapiListeners()
+}
+function init() {
+    window.dapi.isDemoDapi && (window.parent.postMessage(DOLLAR_PREFIX + SEND_MSG_PREFIX + JSON.stringify({
+        state: "getDapiUrl"
+    }), "*"), window.addEventListener("message", getDapi, !1))
+}
+var DOLLAR_PREFIX = "$$",
+RECEIVE_MSG_PREFIX = "DAPI_SERVICE:",
+SEND_MSG_PREFIX = "DAPI_AD:",
+GET_DAPI_URL_MSG_NAME = "connection.getDapiUrl",
+dapiEventsPool = {},
+dapi = window.dapi || {
+    isReady: function () {
+        return !1
+    },
+    addEventListener: function (e, i) {
+        dapiEventsPool[e] = i
+    },
+    removeEventListener: function (e) {
+        delete dapiEventsPool[e]
+    },
+    isDemoDapi: !0
+};
+init();
+</script>`
+const ironSourceEndSdkStr = `<script>
+function onReadyCallback() {dapi.removeEventListener("ready", onReadyCallback);if (dapi.isViewable()) {adVisibleCallback({isViewable: true});dapi.getAudioVolume();}dapi.addEventListener("viewableChange", adVisibleCallback);dapi.addEventListener("adResized", adResizeCallback);dapi.addEventListener("audioVolumeChange", adAudioCallback);}
+function adVisibleCallback(event) {console.log("isViewable " + event.isViewable);if (event.isViewable) {screenSize = dapi.getScreenSize();} else {}}
+function adAudioCallback(event) {if (event.isViewable) {} else {}}
+function adResizeCallback(event) {screenSize = event;console.log("ad was resized width " + event.width + " height " + event.height);}
+window.onload = function () {(dapi.isReady()) ? onReadyCallback(): dapi.addEventListener("ready", onReadyCallback);};\n
+</script>`;
+let addSdk = function(type,html){
+    Editor.log("处理 sdk引入: "+type)
+    switch (Number(type)) {
+        case platform_type.google:
+            Editor.log("处理 google sdk引入 ")
+            html = html.replace("</head>", `${googleSDKStr}\n</head>`)
+            break;
+        case platform_type.facebook:
+            Editor.log("处理 facebook sdk引入 ")
+            break;
+        case platform_type.unity:
+        case platform_type.appLovin:
+            Editor.log("处理 unity|applovin sdk引入 ")
+            html = html.replace("<body>", `${unityAppLovinSDKStr}\n<body>`)
+            break;
+        case platform_type.vungle:
+            Editor.log("处理 vungle sdk引入 ")
+            html = html.replace("<body>", `${unityAppLovinSDKStr}\n<body>`)
+            break;
+        case platform_type.csj:
+            Editor.log("处理 穿山甲 sdk引入 ")
+            html = html.replace("<body>", `<body>\n${csjSDKStr}`)
+            break;
+        case platform_type.ironSource:
+            Editor.log("处理 ironSource sdk引入 ")
+            html = html.replace("<head>", `<head>\n${ironSourceFrontSdkStr}`)
+            html = html.replace("</body>", `${ironSourceEndSdkStr}\n</body>`)
+            break;
+        default:
+            break;
+    }
+    return html;
+}
+
+let content = 
+`{
+    "playable_orientation":0,
+    "playable_languages":["en"]
+}`
+let addConfig = function(){
+    let configname = `config.json`;
+    let outpath = path.join(path.dirname(workdir), configname);
+    fs.writeFileSync(outpath, content, 'utf-8')
+    addTip("config 写入完成")
 }
