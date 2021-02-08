@@ -37,22 +37,24 @@ module.exports = {
 
 
 const platform_type = {
-    /** 谷歌 */
-    google: 0,
-    /** facebook */
-    facebook: 1,
-    /** appLovin */
-    appLovin: 2,
-    /** unity */
-    unity: 3,
-    /** vungle */
-    vungle: 4,
-    /** 穿山甲 */
-    csj: 5,
-    /** ironSource */
-    ironSource: 6,
-    /** 腾讯广点通 */
-    txgdt: 7,
+    /** 谷歌 0*/
+    google : 0,
+    /** facebook 1*/
+    facebook : 1,
+    /** appLovin 2*/
+    appLovin : 2,
+    /** unity 3*/
+    unity : 3,
+    /** vungle 4*/
+    vungle : 4,
+    /** 穿山甲 5*/
+    csj : 5,
+    /** ironSource 6*/
+    ironSource : 6,
+    /** 腾讯广点通 7*/
+    txgdt : 7,
+    /** 腾讯广点通 8*/
+    mintergral : 8
 }
 const path = require("path");
 const fs = require('fs');
@@ -72,13 +74,14 @@ const timePromise = function (duration) {
 }
 let main = async (params) => {
     let type = params.type;
-    let filename = params.filename;
+    let link = params.link;
+    let isSuffix = params.isSuffix;
     Editor.log(`打包类别: ${type}`);
     let newloaderJS = '';
     let resdir = '';
     let needDeletefiles = [];
-    let packRoot = ".";
     Editor.log(`workdir: ${workdir}`);
+    Editor.log(`link: ${link}`);
     if (fs.existsSync(path.join(workdir, "assets"))) {
         resdir = path.join(workdir, "assets");
         Editor.log("newloader2.4.x.j");
@@ -214,10 +217,15 @@ let main = async (params) => {
     html = html.replace("<head>", `<head>\n${title}`);
     addTip("处理 css");
     let csscode = fs.readFileSync(path.join(toolRoot, "style-mobile.css"), 'utf-8');
+    if(Number(type) == platform_type.ironSource){
+        csscode = fs.readFileSync(path.join(toolRoot, "style-mobile-ironsource.css"), 'utf-8');
+    }
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
-    addTip("css 写入完成")
-    Number(type) == platform_type.csj && addConfig();
+    addTip("css 写入完成");
+    if((Number(type) == platform_type.csj || Number(type) == platform_type.txgdt)){
+        addConfig(type);
+    }
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
@@ -227,14 +235,15 @@ let main = async (params) => {
         await timePromise(300);
         jscodecontent = jscodecontent + fs.readFileSync(jsfile, 'utf-8') + "\n";
     }
-    let jscodeTAG = `<script type="text/javascript">\n${jscodecontent}window.boot();</script>`
+    let jscodeTAG = `<script type="text/javascript">\n${jscodecontent}window.boot();\n</script>`
     html = html.replace("</body>", `${jscodeTAG}\n</body>`)
-    let suf = filename ? filename + ".html" : "index." + Math.floor(Date.now() / 1000) + ".html";
+    let suf = isSuffix ?  "index." + Math.floor(Date.now() / 1000) + ".html": "index.html";
     suf = Number(type) == platform_type.vungle ? "ad.html":suf;
     ouputhtml = path.join(path.dirname(workdir), suf);
     html = addSdk(type,html);
+    html = addDownloadCallback(type,link,html);
     fs.writeFileSync(ouputhtml, html, 'utf-8')
-    addTip("html写入完成");
+    addTip("success");
     for (let fff of needDeletefiles) {
         fs.unlink(fff, (err) => {
             err && Editor.log(err)
@@ -247,80 +256,145 @@ let addTip = function(tip){
     Editor.Ipc.sendToPanel('htmltool', 'htmltool:build-tip',{tip:tip});
 }
 
+let addDownloadCallback = function(platform,link,html){
+    addTip("加入下载按钮回调");
+    let downloadCallbackStr = 
+    `<script>
+    function downloadCallback(){
+        let type = "${platform}";
+        let url = "${link}";
+        switch (Number(type)) {
+            case 0:
+                try{
+                    ExitApi.exit();
+                }catch(error){
+                }
+            case 1:
+                try{
+                    FbPlayableAd.onCTAClick();
+                }catch(error){
+                }
+                break;
+            case 2:
+            case 3:
+                try{
+                    mraid.open(url);
+                }catch(error){
+                }
+                break;
+            case platform_type.vungle:
+                try{
+                    parent.postMessage('download','*');;
+                }catch(error){
+                }
+                break;
+            case platform_type.csj:
+                try{
+                    window.playableSDK.openAppStore();
+                }catch(error){
+                }
+                break;
+            case platform_type.ironSource:
+                try{
+                    dapi.openStoreUrl()
+                }catch(error){
+                }
+                break;
+            case platform_type.txgdt:
+                try{
+                    window._gdtUnSdk.playAble.onClick()
+                }catch(error){
+                }
+                break;
+            case platform_type.mintergral:
+                try{
+                    window.install && window.install();
+                }catch(error){
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    window.platformDownloadCallback = downloadCallback;
+    </script>`;
+    html = html.replace("</body>", `${downloadCallbackStr}\n</body>`);
+    return html;
+}
+
 const googleSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
 const unityAppLovinSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
 const csjSDKStr = '<script type="text/javascript" src="https://sf3-ttcdn-tos.pstatp.com/obj/union-fe-nc/playable/sdk/playable-sdk.js"> </script>';
 const ironSourceFrontSdkStr = `<script>
-function getScript(e, i) {
-    var n = document.createElement("script");
-    n.type = "text/javascript", n.async = !0, i && (n.onload = i), n.src = e, document.head.appendChild(n)
-}
-function parseMessage(e) {
-    var i = e.data,
-        n = i.indexOf(DOLLAR_PREFIX + RECEIVE_MSG_PREFIX);
-    if (-1 !== n) {
-        var t = i.slice(n + 2);
-        return getMessageParams(t)
-    }
-    return {}
-}
-function getMessageParams(e) {
-    var i, n = [],
-        t = e.split("/"),
-        a = t.length;
-    if (-1 === e.indexOf(RECEIVE_MSG_PREFIX)) {
-        if (a >= 2 && a % 2 === 0)
-            for (i = 0; a > i; i += 2) n[t[i]] = t.length < i + 1 ? null : decodeURIComponent(t[i + 1])
-    } else {
-        var o = e.split(RECEIVE_MSG_PREFIX);
-        void 0 !== o[1] && (n = JSON && JSON.parse(o[1]))
-    }
-    return n
-}
-function getDapi(e) {
-    var i = parseMessage(e);
-    if (!i || i.name === GET_DAPI_URL_MSG_NAME) {
-        var n = i.data;
-        getScript(n, onDapiReceived)
-    }
-}
-function invokeDapiListeners() {
-    for (var e in dapiEventsPool) dapiEventsPool.hasOwnProperty(e) && dapi.addEventListener(e, dapiEventsPool[
-        e])
-}
-function onDapiReceived() {
-    dapi = window.dapi, window.removeEventListener("message", getDapi), invokeDapiListeners()
-}
-function init() {
-    window.dapi.isDemoDapi && (window.parent.postMessage(DOLLAR_PREFIX + SEND_MSG_PREFIX + JSON.stringify({
-        state: "getDapiUrl"
-    }), "*"), window.addEventListener("message", getDapi, !1))
-}
-var DOLLAR_PREFIX = "$$",
-RECEIVE_MSG_PREFIX = "DAPI_SERVICE:",
-SEND_MSG_PREFIX = "DAPI_AD:",
-GET_DAPI_URL_MSG_NAME = "connection.getDapiUrl",
-dapiEventsPool = {},
-dapi = window.dapi || {
-    isReady: function () {
-        return !1
-    },
-    addEventListener: function (e, i) {
-        dapiEventsPool[e] = i
-    },
-    removeEventListener: function (e) {
-        delete dapiEventsPool[e]
-    },
-    isDemoDapi: !0
-};
+function getScript(e,i){var n=document.createElement("script");n.type="text/javascript",n.async=!0,i&&(n.onload=i),n.src=e,document.head.appendChild(n)}
+function parseMessage(e){var i=e.data,n=i.indexOf(DOLLAR_PREFIX1 + DOLLAR_PREFIX2 +RECEIVE_MSG_PREFIX);if(-1!==n){var t=i.slice(n+2);return getMessageParams(t)}return{}}
+function getMessageParams(e){var i,n=[],t=e.split("/"),a=t.length;if(-1===e.indexOf(RECEIVE_MSG_PREFIX)){if(a>=2&&a%2===0)for(i=0;a>i;i+=2)n[t[i]]=t.length<i+1?null:decodeURIComponent(t[i+1])}else{var o=e.split(RECEIVE_MSG_PREFIX);void 0!==o[1]&&(n=JSON&&JSON.parse(o[1]))}return n}
+function getDapi(e){var i=parseMessage(e);if(!i||i.name===GET_DAPI_URL_MSG_NAME){var n=i.data;getScript(n,onDapiReceived)}}
+function invokeDapiListeners(){for(var e in dapiEventsPool)dapiEventsPool.hasOwnProperty(e)&&dapi.addEventListener(e,dapiEventsPool[e])}
+function onDapiReceived(){dapi=window.dapi,window.removeEventListener("message",getDapi),invokeDapiListeners()}
+function init(){window.dapi.isDemoDapi&&(window.parent.postMessage(DOLLAR_PREFIX1 + DOLLAR_PREFIX2 +SEND_MSG_PREFIX+JSON.stringify({state:"getDapiUrl"}),"*"),
+window.addEventListener("message",getDapi,!1))}
+var DOLLAR_PREFIX1="$",DOLLAR_PREFIX2="$",RECEIVE_MSG_PREFIX="DAPI_SERVICE:",SEND_MSG_PREFIX="DAPI_AD:",GET_DAPI_URL_MSG_NAME="connection.getDapiUrl",dapiEventsPool={},dapi=window.dapi||{isReady:function(){return!1},addEventListener:function(e,i){dapiEventsPool[e]=i},removeEventListener:function(e){delete dapiEventsPool[e]},isDemoDapi:!0};
 init();
-</script>`
+</script>`;
 const ironSourceEndSdkStr = `<script>
-function onReadyCallback() {dapi.removeEventListener("ready", onReadyCallback);if (dapi.isViewable()) {adVisibleCallback({isViewable: true});dapi.getAudioVolume();}dapi.addEventListener("viewableChange", adVisibleCallback);dapi.addEventListener("adResized", adResizeCallback);dapi.addEventListener("audioVolumeChange", adAudioCallback);}
-function adVisibleCallback(event) {console.log("isViewable " + event.isViewable);if (event.isViewable) {screenSize = dapi.getScreenSize();} else {}}
-function adAudioCallback(event) {if (event.isViewable) {} else {}}
-function adResizeCallback(event) {screenSize = event;console.log("ad was resized width " + event.width + " height " + event.height);}
-window.onload = function () {(dapi.isReady()) ? onReadyCallback(): dapi.addEventListener("ready", onReadyCallback);};\n
+function onReadyCallback() {
+    dapi.removeEventListener("ready", onReadyCallback);
+    if (dapi.isViewable()) {
+        adVisibleCallback({
+            isViewable: true
+        });
+        dapi.getAudioVolume();
+    }
+    dapi.addEventListener("viewableChange", adVisibleCallback);
+    dapi.addEventListener("adResized", adResizeCallback);
+    dapi.addEventListener("audioVolumeChange", adAudioCallback);
+}
+function adVisibleCallback(event) {
+    console.log("isViewable " + event.isViewable);
+    if (event.isViewable) {
+        screenSize = dapi.getScreenSize();
+        //START or RESUME the ad
+
+    } else {
+        //PAUSE the ad and MUTE sounds
+
+    }
+}
+function adAudioCallback(event) {
+    if (event.isViewable) {
+
+    } else {
+        //暂停广告并静音
+    }
+}
+function adResizeCallback(event) {
+    screenSize = event;
+    console.log("ad was resized width " + event.width + " height " + event.height);
+}
+window.onload = function () {
+    console.time=()=>{}
+    console.timeEnd=()=>{}
+    console.log("window.onload");
+    (dapi.isReady()) ? onReadyCallback(): dapi.addEventListener("ready", onReadyCallback);
+    // document.querySelector("#loading").style.display = "none";
+    //   document.querySelector("#app_wrap").style.visibility = "visible";
+    //Here you can put other code that not related to dapi logic
+
+};
+</script>`;
+const txgdtSDKStr = '<script type="text/javascript" src="https://qzs.qq.com/union/res/union_sdk/page/unjs/unsdk.js"></script>';
+const txgdtEndScript = `
+<script>
+window._gdtUnSdk = window.GDTUnSdk && new window.GDTUnSdk({
+    type: 'playable', // String - 类型：互动（试玩）广告
+onSuccess: function(res) { // Function：转化按钮成功回调方法
+        console.log(res); 
+    },
+    onError: function(res) { // Function：实例化异常回调方法
+        console.log(res);
+    }
+})
 </script>`;
 let addSdk = function(type,html){
     Editor.log("处理 sdk引入: "+type)
@@ -347,8 +421,16 @@ let addSdk = function(type,html){
             break;
         case platform_type.ironSource:
             Editor.log("处理 ironSource sdk引入 ")
-            html = html.replace("<head>", `<head>\n${ironSourceFrontSdkStr}`)
+            html = html.replace("<style>", `${ironSourceFrontSdkStr}\n<style>`)
             html = html.replace("</body>", `${ironSourceEndSdkStr}\n</body>`)
+            break;
+        case platform_type.txgdt:
+            Editor.log("处理 腾讯广点通 sdk引入 ")
+            html = html.replace("</head>", `${txgdtSDKStr}\n</head>`)
+            html = html.replace("</body>", `${txgdtEndScript}\n</body>`)
+            break;
+        case platform_type.mintergral:
+            Editor.log("处理 mintergral sdk引入 ")
             break;
         default:
             break;
@@ -356,14 +438,23 @@ let addSdk = function(type,html){
     return html;
 }
 
-let content = 
+let configCsjInfo = 
 `{
     "playable_orientation":0,
     "playable_languages":["en"]
 }`
-let addConfig = function(){
+let configGdtInfo = 
+`{
+    "name":"${Editor.Project.name}",
+    "company":"多比特",
+    "version":"0.0.1",
+    "config":{         
+        "play_direction":0   
+    } 
+}`
+let addConfig = function(type){
     let configname = `config.json`;
     let outpath = path.join(path.dirname(workdir), configname);
-    fs.writeFileSync(outpath, content, 'utf-8')
+    fs.writeFileSync(outpath, type == platform_type.csj? configCsjInfo:configGdtInfo, 'utf-8');
     addTip("config 写入完成")
 }

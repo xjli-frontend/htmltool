@@ -5,7 +5,7 @@
   "author": "Cocos Creator",
   "main": "main.js",
   "main-menu": {
-    "i18n:MAIN_MENU.package.title/htmltool/open": {
+    "i18n:MAIN_MENU.package.title/htmltool": {
       "message": "htmltool:open"
     }
   },

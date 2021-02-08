@@ -1,20 +1,25 @@
 <div class="flex-1 mainDiv " id="mainDiv">
     <h2>htmltool</h2>
+    <div id="title_tip">下载按钮回调 <ui-text-area readonly style="top: 5px;width:160px;height: 22px;" value ="platformDownloadCallback"></ui-text-area>兼容所有平台</div>
     <ui-section>  
-        <div class="header">可玩广告类型 注：appLovin和unity需要mraid.js</div>
+        <div class="header">可玩广告类型</div><ui-label>
         <ui-select id="platformType" value="0">
             <option v-for="item in types" value="{{item.id}}">{{item.name}}</option>
         </ui-select>
     </ui-section>
-    <!-- <div> -->
-    <hr />
-        <ui-input id="filename" placeholder="index+date"></ui-input>
-        <ui-input id="title" placeholder="项目名字"></ui-input>
-        <ui-button class="green" @click="build" id="buildhtml">构建</ui-button>
+    <div>{{tip}}</div>
+    <hr/>
+    <div >
+        <span data-tooltip="仅unity和appLovin需要"><ui-input id="link" placeholder="项目链接" style="display:none"></ui-input></span>
+        <span data-tooltip="默认为项目名"><ui-input  id="title" placeholder="项目title" ></ui-input></span>
+        <div style="text-align: left;" >
+            <ui-button class="green" @click="build" id="buildhtml" style="top: 3px;">构建</ui-button>
+            <ui-checkbox id = "suffix" checked style="bottom: 5px;">后缀名</ui-checkbox> <ui-label id="failtext">{{fail}}</ui-label>
+        </div>
         <div><span id="buildlabel"></span></div>
-    <!-- </div> -->
+    </div>
     <hr />
         <ui-button id="openhtml" @click="openhtml">打开</ui-button>
-        <div><span id="openlabel"></span></div>
+        <!-- <div id="faillabel"></div> -->
     <hr />
 </div>
