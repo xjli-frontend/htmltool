@@ -58,8 +58,8 @@ const platform_type = {
 }
 const path = require("path");
 const fs = require('fs');
+
 const CleanCSS = require("clean-css");
-const toolRoot = path.join(Editor.Project.path, 'packages', "htmltool");
 let ouputhtml = "";
 const workdir = path.join(Editor.Project.path, "build","web-mobile");
 Editor.log(workdir);
@@ -85,11 +85,11 @@ let main = async (params) => {
     if (fs.existsSync(path.join(workdir, "assets"))) {
         resdir = path.join(workdir, "assets");
         Editor.log("newloader2.4.x.j");
-        newloaderJS = path.join(toolRoot,"newloader2.4.x.js");
+        newloaderJS = Editor.url('packages://htmltool/newloader2.4.x.js', 'utf8');
     } else {
         resdir = path.join(workdir, "res");
         Editor.log("newloader2.3.x.j");
-        newloaderJS = path.join(toolRoot,"newloader2.3.x.js");
+        newloaderJS = Editor.url('packages://htmltool/newloader2.3.x.js', 'utf8');
     }
     if (!fs.existsSync(resdir)) {
         Editor.error(resdir + "不存在！");
@@ -154,7 +154,7 @@ let main = async (params) => {
         }
     }
     loopDirJS(workdir, cocosjsfiles);
-    Editor.log("cocosjsfiles", cocosjsfiles)
+    // Editor.log("cocosjsfiles", cocosjsfiles)
     // 把settings.js 放入jsfilesQueue
     for (let index = 0; index < cocosjsfiles.length; index++) {
         const jsfile = cocosjsfiles[index];
@@ -205,7 +205,7 @@ let main = async (params) => {
     // assetsBundle 内合并js放入 filesQueue;
     jsfilesQueue = jsfilesQueue.concat(ouputAssetJSFiles);
 
-    Editor.log("jsfilesQueue ", jsfilesQueue);
+    // Editor.log("jsfilesQueue ", jsfilesQueue);
 
     // 清理html
     addTip("处理 html");
@@ -216,22 +216,22 @@ let main = async (params) => {
     let title = `<title>${params.title ? params.title:Editor.Project.name}</title>`
     html = html.replace("<head>", `<head>\n${title}`);
     addTip("处理 css");
-    let csscode = fs.readFileSync(path.join(toolRoot, "style-mobile.css"), 'utf-8');
+    let csscode = fs.readFileSync(Editor.url('packages://htmltool/style-mobile.css', 'utf8'));
     if(Number(type) == platform_type.ironSource){
-        csscode = fs.readFileSync(path.join(toolRoot, "style-mobile-ironsource.css"), 'utf-8');
+        csscode = fs.readFileSync(Editor.url('packages://htmltool/style-mobile-ironsource.css', 'utf-8'));
     }
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
     addTip("css 写入完成");
     if((Number(type) == platform_type.csj || Number(type) == platform_type.txgdt)){
-        addConfig(type);
+        addConfig(Number(type));
     }
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
             continue;
         }
-        addTip(`处理 ${jsfile}`)
+        // addTip(`处理 ${jsfile}`)
         await timePromise(300);
         jscodecontent = jscodecontent + fs.readFileSync(jsfile, 'utf-8') + "\n";
     }
