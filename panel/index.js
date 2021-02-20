@@ -84,12 +84,14 @@ Editor.Panel.extend({
           },500)
           return;
       }
-      Editor.Ipc.sendToMain('htmltool:build',{type:this.$platformType.value,title:this.$title.value,isSuffix:this.$suffix.checked,link:this.$link.value});
+      Editor.Ipc.sendToMain('htmltool:build',
+        {type:this.$platformType.value,title:this.$title.value,isSuffix:this.$suffix.checked,link:this.$link.value}
+      );
     });
 
     this.$platformType.value = this.vue.defaultType;
     this.$platformType.addEventListener('change', (event) => {
-      Editor.log(`change: ${this.$platformType.value}`)
+      Editor.log(`platformType: ${this.$platformType.value}`)
       this.vue.defaultType = this.$platformType.value;
       if(this.vue.defaultType == 2 || this.vue.defaultType == 3){
         this.$link.style.display = "block";
