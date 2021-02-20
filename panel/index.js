@@ -102,7 +102,7 @@ Editor.Panel.extend({
 
   messages: {
     'htmltool:open-error' (event) {
-      this.vue.fail = '先构建打开!';
+      this.vue.fail = '先构建再打开!';
       setTimeout(()=>{
         this.vue.fail = '';
       },500)
