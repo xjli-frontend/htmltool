@@ -217,15 +217,11 @@ let main = async (params) => {
     html = html.replace("<head>", `<head>\n${title}`);
     addTip("处理 css");
     let csscode = fs.readFileSync(Editor.url('packages://htmltool/style-mobile.css', 'utf8'));
-    if(Number(type) == platform_type.ironSource){
-        csscode = fs.readFileSync(Editor.url('packages://htmltool/style-mobile-ironsource.css', 'utf-8'));
-    }
+    Number(type) == platform_type.ironSource && (csscode = fs.readFileSync(Editor.url('packages://htmltool/style-mobile-ironsource.css', 'utf-8')));
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
     addTip("css 写入完成");
-    if((Number(type) == platform_type.csj || Number(type) == platform_type.txgdt)){
-        addConfig(Number(type));
-    }
+    (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && addConfig(Number(type));
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
