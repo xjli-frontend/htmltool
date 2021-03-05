@@ -318,6 +318,7 @@ let addDownloadCallback = function(platform,link,html){
     return html;
 }
 
+const googleContentSize = '<meta name="ad.size" content="width=320,height=480">';
 const googleSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
 const unityAppLovinSDKStr = '<script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"> </script>';
 const csjSDKStr = '<script type="text/javascript" src="https://sf3-ttcdn-tos.pstatp.com/obj/union-fe-nc/playable/sdk/playable-sdk.js"> </script>';
@@ -398,6 +399,7 @@ let addSdk = function(type,html){
         case platform_type.google:
             Editor.log("处理 google sdk引入 ")
             html = html.replace("</head>", `${googleSDKStr}\n</head>`)
+            html = html.replace("</title>", `</title>\n${googleContentSize}`)
             break;
         case platform_type.facebook:
             Editor.log("处理 facebook sdk引入 ")

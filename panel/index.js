@@ -33,7 +33,7 @@ Editor.Panel.extend({
   // css style for panel
   style: `
     :host { margin: 5px; }
-    h2 { color: #f90; }
+    h1 { color: #f90; }
     #failtext { color: red; }
     #buildlabel { color: green; line-height:30px;}
     #title_tip{color: green;}
