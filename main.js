@@ -449,7 +449,7 @@ let configGdtInfo =
     "company":"多比特",
     "version":"0.0.1",
     "config":{         
-        "play_direction":0   
+        "play_direction":0
     } 
 }`
 let addConfig = function(type,language){
