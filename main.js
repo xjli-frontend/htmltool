@@ -221,7 +221,7 @@ let main = async (params) => {
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
     addTip("css 写入完成");
-    (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && addConfig(Number(type));
+    (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && addConfig(Number(type),params.language);
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
@@ -436,11 +436,13 @@ let addSdk = function(type,html){
     return html;
 }
 
-let configCsjInfo = 
-`{
-    "playable_orientation":0,
-    "playable_languages":["en"]
-}`
+let configCsjInfo = function(language){
+    if(!language){
+        return `{\n  "playable_orientation":0\n}`;
+    }
+    return `{\n  "playable_orientation":0,\n  "playable_languages":["${language}"]\n}`;
+} 
+
 let configGdtInfo = 
 `{
     "name":"${Editor.Project.name}",
@@ -450,9 +452,9 @@ let configGdtInfo =
         "play_direction":0   
     } 
 }`
-let addConfig = function(type){
+let addConfig = function(type,language){
     let configname = `config.json`;
     let outpath = path.join(path.dirname(workdir), configname);
-    fs.writeFileSync(outpath, type == platform_type.csj? configCsjInfo:configGdtInfo, 'utf-8');
+    fs.writeFileSync(outpath, type == platform_type.csj? configCsjInfo(language):configGdtInfo, 'utf-8');
     addTip("config 写入完成")
 }

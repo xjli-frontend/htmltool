@@ -67,6 +67,7 @@ Editor.Panel.extend({
     platformType: "#platformType",
     buildlabel: "#buildlabel",
     link:"#link",
+    language:"#language",
     suffix:"#suffix",
     title:"#title",
   },
@@ -85,7 +86,12 @@ Editor.Panel.extend({
           return;
       }
       Editor.Ipc.sendToMain('htmltool:build',
-        {type:this.$platformType.value,title:this.$title.value,isSuffix:this.$suffix.checked,link:this.$link.value}
+        {
+          type:this.$platformType.value,
+          title:this.$title.value,
+          isSuffix:this.$suffix.checked,
+          link:this.$link.value,
+          language:this.$language.value}
       );
     });
 
@@ -98,6 +104,7 @@ Editor.Panel.extend({
       }else{
         this.$link.style.display = "none";
       }
+      this.$language.style.display = this.vue.defaultType == 5? "block":"none";
       this.vue.tip = showTipByType(this.$platformType.value);
     });
   },
