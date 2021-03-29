@@ -278,31 +278,31 @@ let addDownloadCallback = function(platform,link,html){
                 }catch(error){
                 }
                 break;
-            case platform_type.vungle:
+            case 4:
                 try{
                     parent.postMessage('download','*');;
                 }catch(error){
                 }
                 break;
-            case platform_type.csj:
+            case 5:
                 try{
                     window.playableSDK.openAppStore();
                 }catch(error){
                 }
                 break;
-            case platform_type.ironSource:
+            case 6:
                 try{
                     dapi.openStoreUrl()
                 }catch(error){
                 }
                 break;
-            case platform_type.txgdt:
+            case 7:
                 try{
                     window._gdtUnSdk.playAble.onClick()
                 }catch(error){
                 }
                 break;
-            case platform_type.mintergral:
+            case 8:
                 try{
                     window.install && window.install();
                 }catch(error){
