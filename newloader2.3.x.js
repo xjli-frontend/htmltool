@@ -44,23 +44,42 @@
             onComplete && onComplete(null, img)
         };
     });
-    ['.mp3', '.wav', '.ogg', '.w4a'].forEach(function (format) {
-        handlers[format.substr(1)] = function (item, onComplete) {
-            base64DecToArr(window.ccassets[item.url]).buffer,
-                function (buffer) {
-                    onComplete(null, buffer)
-                },
-                function () {
-                    onComplete(new Error("mp3-res-fail"), null)
-                }
-        };
-    });
     ['binary', ".bin", ".dbbin", ".skel"].forEach(function (format) {
         handlers[format.substr(1)] = function (item, onComplete) {
             var arraybuffer = base64DecToArr(window.ccassets[item.url]).buffer;
             onComplete(null, arraybuffer);
         };
     });
+    // ['.wav', '.ogg', '.w4a'].forEach(function (format) {
+    //     console.log('.mp3  cc.loader.addDownloadHandlers')
+    //     handlers[format.substr(1)] = function (item, onComplete) {
+    //         base64DecToArr(window.ccassets[item.url]).buffer,
+    //             function (buffer) {
+    //                 onComplete(null, buffer)
+    //                 console.log('.mp3 Error  cc.loader.addDownloadHandlers')
+    //             },
+    //             function () {
+
+    //                 console.log('.mp3 onComplete  cc.loader.addDownloadHandlers')
+    //                 onComplete(new Error("mp3-res-fail"), null)
+    //             }
+    //     };
+    // });
+    handlers["mp3"] =  function (item, callback) {
+        // 只支持以webAudio形式播放的声音
+        // 将base64编码的声音文件转化为ArrayBuffer
+        cc.sys.__audioSupport.context.decodeAudioData(
+            base64DecToArr(window.ccassets[item.url]).buffer,
+            // success
+            function (buffer) {
+                callback(null, buffer)
+            },
+            // fail
+            function (buffer) {
+                callback(new Error("mp3-res-fail"), null)
+            }
+        )
+    }
     cc.loader.addDownloadHandlers(handlers);
     console.log('cc.loader.addDownloadHandlers')
 })();
