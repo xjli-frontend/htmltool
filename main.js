@@ -256,7 +256,6 @@ let main = async (params) => {
     zipStream.on('close', function() {
         addTip("压缩完成");
         addTip(zip.pointer() + ' total bytes');
-        addTip('archiver has been finalized and the output file descriptor has closed.');
       });
     zip.pipe(zipStream);
     configPath && zip.file(configPath,{name:'config.json'});
