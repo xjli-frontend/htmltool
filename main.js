@@ -1,6 +1,8 @@
 'use strict';
 
 const exec = require('child_process').exec;
+const archiver = require('archiver');
+
 module.exports = {
   load () {
     // execute when package loaded
@@ -58,6 +60,7 @@ const platform_type = {
 }
 const path = require("path");
 const fs = require('fs');
+const zipSuf = 'index';
 
 const CleanCSS = require("clean-css");
 let ouputhtml = "";
@@ -221,7 +224,9 @@ let main = async (params) => {
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
     addTip("css 写入完成");
-    (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && addConfig(Number(type),params.language);
+    addTip("开始创建dist文件夹");
+    let configPath = '';
+    (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && (configPath = addConfig(Number(type),params.language));
     let jscodecontent = '';
     for (let jsfile of jsfilesQueue) {
         if (!jsfile.endsWith(".js")) {
@@ -239,13 +244,32 @@ let main = async (params) => {
     html = addSdk(type,html);
     html = addDownloadCallback(type,link,html);
     fs.writeFileSync(ouputhtml, html, 'utf-8')
+    let outZip = path.join(Editor.Project.path, "build", `${zipSuf}.zip`);
+    if (fs.existsSync(outZip)) {
+        addTip("存在zip文件，先删除");
+        fs.unlinkSync(outZip);
+    }
+    addTip("开始压缩");
+    addTip(`outZip: ${outZip}`);
+    const zipStream = fs.createWriteStream(outZip);
+    const zip = archiver('zip',{zlib:{level:9}})
+    zipStream.on('close', function() {
+        addTip("压缩完成");
+        addTip(zip.pointer() + ' total bytes');
+        addTip('archiver has been finalized and the output file descriptor has closed.');
+      });
+    zip.pipe(zipStream);
+    configPath && zip.file(configPath,{name:'config.json'});
+    zip.file(ouputhtml,{name:suf});
+    zip.finalize()
+
+    Editor.log(ouputhtml)
     addTip("success");
     for (let fff of needDeletefiles) {
         fs.unlink(fff, (err) => {
             err && Editor.log(err)
         })
     }
-    Editor.log(ouputhtml)
 }
 
 let addTip = function(tip){
@@ -457,4 +481,5 @@ let addConfig = function(type,language){
     let outpath = path.join(path.dirname(workdir), configname);
     fs.writeFileSync(outpath, type == platform_type.csj? configCsjInfo(language):configGdtInfo, 'utf-8');
     addTip("config 写入完成")
+    return outpath;
 }
