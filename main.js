@@ -20,6 +20,7 @@ module.exports = {
     },
     'build' (event,params) {
       Editor.log('构建开始!'+ JSON.stringify(params));
+      changeProgress(0);
       main(params);
     },
     'open-html'(){
@@ -224,7 +225,6 @@ let main = async (params) => {
     csscode = `<style>${new CleanCSS().minify(csscode).styles}</style>`
     html = html.replace("</head>", `${csscode}\n</head>`);
     addTip("css 写入完成");
-    addTip("开始创建dist文件夹");
     let configPath = '';
     (Number(type) == platform_type.csj || Number(type) == platform_type.txgdt) && (configPath = addConfig(Number(type),params.language));
     let jscodecontent = '';
@@ -253,17 +253,20 @@ let main = async (params) => {
     addTip(`outZip: ${outZip}`);
     const zipStream = fs.createWriteStream(outZip);
     const zip = archiver('zip',{zlib:{level:9}})
-    zipStream.on('close', function() {
+    zipStream.on('finish', function() {
         addTip("压缩完成");
         addTip(zip.pointer() + ' total bytes');
+        addTip("success");
       });
+    zip.on('progress', function(progressData) {
+        changeProgress(Math.ceil(progressData.fs.processedBytes/progressData.fs.totalBytes*100))
+    });
     zip.pipe(zipStream);
     configPath && zip.file(configPath,{name:'config.json'});
     zip.file(ouputhtml,{name:suf});
     zip.finalize()
 
     Editor.log(ouputhtml)
-    addTip("success");
     for (let fff of needDeletefiles) {
         fs.unlink(fff, (err) => {
             err && Editor.log(err)
@@ -273,6 +276,11 @@ let main = async (params) => {
 
 let addTip = function(tip){
     Editor.Ipc.sendToPanel('htmltool', 'htmltool:build-tip',{tip:tip});
+}
+
+let changeProgress = function(progressVal){
+    Editor.log(progressVal)
+    Editor.Ipc.sendToPanel('htmltool', 'htmltool:build-tip',{progressVal:progressVal});
 }
 
 let addDownloadCallback = function(platform,link,html){

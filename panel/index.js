@@ -17,14 +17,16 @@ const createVUE = function (element) {
       defaultType:0,
       tip:"",
       fail:"",
-      callback:"platformDownloadCallback"
+      callback:"platformDownloadCallback",
+      progressVal:0
     },
     created: function () {
     },
     methods: {
       openhtml(){
         Editor.Ipc.sendToMain('htmltool:open-html');
-      }
+      },
+     
     }
   });
 };
@@ -70,9 +72,11 @@ Editor.Panel.extend({
     language:"#language",
     suffix:"#suffix",
     title:"#title",
+    progress:"#progress"
   },
 
   ready () {
+    // this.$progress.style.display = "none";
     this.vue = createVUE(this.$mainDiv);
 
     this.$buildhtml.addEventListener('click', (event) => {
@@ -117,11 +121,17 @@ Editor.Panel.extend({
       },500)
     },
     'htmltool:build-tip' (event,params) {
-      if(params.tip == "success"){
+      if(params.tip && params.tip == "success"){
         this.$buildhtml.disabled = false;
+        Editor.log(`${params.tip}`)
+        // this.$buildlabel.innerText = `${params.tip}`;
+      }else if(typeof(params.progressVal) == "number"){
+        Editor.log(`build-tip: ${JSON.stringify(params) }`)
+        this.vue.progressVal = params.progressVal;
+        this.$progress.value = params.progressVal;
+        // this.$progress.style.display = Number(params.progressVal > 0) ? "block" : "none";
+        Editor.log(`build-tip: ${this.vue.progressVal}, ${this.$progress.value}`)
       }
-      // this.$buildlabel.innerText = `${params.tip}`;
-      Editor.log(`${params.tip}`)
     }
   },
 
