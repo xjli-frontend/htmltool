@@ -279,7 +279,7 @@ let addTip = function(tip){
 }
 
 let changeProgress = function(progressVal){
-    Editor.log(progressVal)
+    // Editor.log(progressVal)
     Editor.Ipc.sendToPanel('htmltool', 'htmltool:build-tip',{progressVal:progressVal});
 }
 
