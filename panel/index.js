@@ -126,11 +126,11 @@ Editor.Panel.extend({
         Editor.log(`${params.tip}`)
         // this.$buildlabel.innerText = `${params.tip}`;
       }else if(typeof(params.progressVal) == "number"){
-        Editor.log(`build-tip: ${JSON.stringify(params) }`)
+        // Editor.log(`build-tip: ${JSON.stringify(params) }`)
         this.vue.progressVal = params.progressVal;
         this.$progress.value = params.progressVal;
         // this.$progress.style.display = Number(params.progressVal > 0) ? "block" : "none";
-        Editor.log(`build-tip: ${this.vue.progressVal}, ${this.$progress.value}`)
+        // Editor.log(`build-tip: ${this.vue.progressVal}, ${this.$progress.value}`)
       }
     }
   },
